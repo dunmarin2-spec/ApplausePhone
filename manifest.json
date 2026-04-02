@@ -1,0 +1,15 @@
+{
+  "name": "Clap Finder Melody",
+  "short_name": "ClapFinder",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4facfe",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2907/2907253.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
