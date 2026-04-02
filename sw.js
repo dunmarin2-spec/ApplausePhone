@@ -1,7 +1,8 @@
-const CACHE_NAME = 'clap-finder-v1';
+const CACHE_NAME = 'clap-finder-v2'; // 버전을 올려서 캐시를 갱신합니다.
 const ASSETS = [
   'index.html',
-  'manifest.json'
+  'manifest.json',
+  'icon-512.png' // 새로운 아이콘 파일을 목록에 추가합니다.
 ];
 
 self.addEventListener('install', (e) => {
