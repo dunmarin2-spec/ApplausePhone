@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>박수로 폰 찾기 (Clap Finder)</title>
+    <title>Clap Finder - Melody Edition</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -13,46 +13,45 @@
             justify-content: center;
             height: 100vh;
             margin: 0;
-            background-color: #f0f2f5;
-            transition: background-color 0.3s;
+            background-color: #f8f9fa;
+            transition: background-color 0.5s;
         }
         .container {
             text-align: center;
             background: white;
-            padding: 2rem;
-            border-radius: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            padding: 2.5rem;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
         }
         #status {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             margin-bottom: 2rem;
-            color: #555;
+            color: #666;
+            line-height: 1.5;
         }
         .btn {
-            padding: 15px 40px;
+            padding: 18px 45px;
             font-size: 1.1rem;
-            font-weight: bold;
+            font-weight: 600;
             border: none;
-            border-radius: 30px;
+            border-radius: 50px;
             cursor: pointer;
-            transition: transform 0.2s, background-color 0.2s;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
-        .start { background-color: #007bff; color: white; }
-        .stop { background-color: #ff4757; color: white; display: none; }
-        .btn:active { transform: scale(0.95); }
+        .start { background-color: #4facfe; color: white; }
+        .stop { background-color: #ff6b6b; color: white; display: none; }
+        .btn:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
         
-        /* 박수 감지 시 깜빡이는 효과 */
-        .detecting { background-color: #ffeaa7 !important; }
-        .alarm-active { background-color: #ff7675 !important; animation: blink 0.5s infinite; }
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .alarm-active { background-color: #e0f7fa !important; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>👏 박수로 내 폰 찾기</h2>
-    <div id="status">아래 버튼을 눌러 감지를 시작하세요</div>
-    <button id="startBtn" class="btn start" onclick="initAudio()">감지 시작하기</button>
+    <h2>🎵 멜로디 폰 찾기</h2>
+    <div id="status">박수를 두 번 연속 치면<br>아름다운 멜로디가 울립니다.</div>
+    <button id="startBtn" class="btn start" onclick="initAudio()">감지 모드 켜기</button>
     <button id="stopBtn" class="btn stop" onclick="stopDetection()">중지하기</button>
 </div>
 
@@ -72,9 +71,7 @@
             microphone = audioContext.createMediaStreamSource(stream);
             scriptProcessor = audioContext.createScriptProcessor(2048, 1, 1);
 
-            analyser.smoothingTimeConstant = 0.3;
             analyser.fftSize = 1024;
-
             microphone.connect(analyser);
             analyser.connect(scriptProcessor);
             scriptProcessor.connect(audioContext.destination);
@@ -83,66 +80,73 @@
 
             document.getElementById('startBtn').style.display = 'none';
             document.getElementById('stopBtn').style.display = 'inline-block';
-            document.getElementById('status').innerText = "박수를 기다리는 중...";
+            document.getElementById('status').innerHTML = "박수 소리를<br>기다리고 있어요 ✨";
         } catch (err) {
-            alert("마이크 권한이 필요합니다: " + err);
+            alert("마이크 권한을 허용해 주세요!");
         }
     }
 
     function processAudio(e) {
         if (isAlarming) return;
-
         const inputData = e.inputBuffer.getChannelData(0);
         let maxVolume = 0;
         for (let i = 0; i < inputData.length; i++) {
             if (inputData[i] > maxVolume) maxVolume = inputData[i];
         }
 
-        // 박수 소리 감지 임계값 (환경에 따라 0.3 ~ 0.6 조절 가능)
         if (maxVolume > 0.45) {
             const now = Date.now();
             const timeDiff = now - lastClapTime;
-
-            // 두 번째 박수가 0.2초 ~ 0.8초 사이에 들리면 인식
             if (timeDiff > 200 && timeDiff < 800) {
-                triggerAlarm();
+                playMelody();
             }
             lastClapTime = now;
         }
     }
 
-    function triggerAlarm() {
-        isAlarming = true;
-        document.body.classList.add('alarm-active');
-        document.getElementById('status').innerText = "🔊 찾으셨나요? 여기 있습니다!";
-        
-        // 1. 진동 (지원되는 기기에서)
-        if (navigator.vibrate) navigator.vibrate([500, 300, 500, 300, 500]);
-
-        // 2. 소리 (브라우저 기본 비프음)
+    // 맑은 실로폰 소리의 멜로디 재생 함수
+    function playNote(freq, startTime, duration) {
         const osc = audioContext.createOscillator();
         const gain = audioContext.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(880, audioContext.currentTime); // 높은 라 음
+
+        osc.type = 'sine'; // 부드러운 사인파
+        osc.frequency.setValueAtTime(freq, startTime);
+
+        gain.gain.setValueAtTime(0, startTime);
+        gain.gain.linearRampToValueAtTime(0.5, startTime + 0.05); // 어택
+        gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration); // 릴리즈
+
         osc.connect(gain);
         gain.connect(audioContext.destination);
+
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+    }
+
+    function playMelody() {
+        isAlarming = true;
+        document.body.classList.add('alarm-active');
+        document.getElementById('status').innerHTML = "🎶 여기 있어요!<br>멜로디가 들리시나요?";
+
+        const now = audioContext.currentTime;
         
-        gain.gain.setValueAtTime(0, audioContext.currentTime);
-        gain.gain.linearRampToValueAtTime(1, audioContext.currentTime + 0.1);
-        
-        osc.start();
-        
-        // 3초 후 알람 자동 중지
+        // 도-미-솔-도 (C4, E4, G4, C5) 멜로디 구성
+        playNote(523.25, now, 0.5);      // C5
+        playNote(659.25, now + 0.2, 0.5); // E5
+        playNote(783.99, now + 0.4, 0.5); // G5
+        playNote(1046.50, now + 0.6, 0.8);// C6 (높은 도)
+
+        if (navigator.vibrate) navigator.vibrate([100, 100, 100, 100, 500]);
+
         setTimeout(() => {
-            osc.stop();
             isAlarming = false;
             document.body.classList.remove('alarm-active');
-            document.getElementById('status').innerText = "다시 박수를 기다리는 중...";
-        }, 3000);
+            document.getElementById('status').innerHTML = "다시 박수 소리를<br>기다리고 있어요 ✨";
+        }, 2500);
     }
 
     function stopDetection() {
-        location.reload(); // 가장 확실한 중지 방법
+        location.reload();
     }
 </script>
 
